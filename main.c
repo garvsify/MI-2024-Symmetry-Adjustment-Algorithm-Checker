@@ -28,6 +28,7 @@ volatile uint16_t check[4][5*128*256] = {{0}};
 //volatile uint8_t check[1] = {0};
 volatile uint32_t count = 0;
 volatile uint32_t total_okay = 0;
+volatile uint8_t first_time = 0;
 
 //STRUCT VARIABLES
 struct Params params = {0};
@@ -43,11 +44,11 @@ int main() {
 
         raw_prescaler_value = TIM16_prescalers[pr];
 
-        for(uint8_t sv = 0; sv < 128; sv++){
+        for(uint8_t sv = 0; sv < 128; sv++){ //raw_start_value of 0-127
 
 			raw_start_value_value = sv;
 
-            for(uint16_t sy = 0; sy < 256; sy++){
+            for(uint16_t sy = 0; sy < 256; sy++){ //symmetry of 0-255
 
 				symmetry_value = sy;
 
@@ -116,13 +117,15 @@ int main() {
 
 	for(uint32_t i = 0; i < 5*128*256; i++){
 		if(check[FLAG_ROW][i] == 1){
+			if(first_time == 0){
+				printf("Structs containing values of raw_start_value, symmetry, and raw_prescaler that do not produce N_sym = 2 * N_raw :-\n\n");
+			}
+			first_time = 1;
 			printf("Struct: %d\n", i);
-			printf("Raw Prescaler Value: %d\n", check[RAW_PRESCALER_ROW][i]);
-			printf("Raw Start Value: %d\n", check[RAW_START_VALUE_ROW][i]);
-			printf("Symmetry Value: %d\n", check[SYMMETRY_VALUE_ROW][i]);
+			//printf("Raw Prescaler Value: %d\n", check[RAW_PRESCALER_ROW][i]);
+			//printf("Raw Start Value: %d\n", check[RAW_START_VALUE_ROW][i]);
+			//printf("Symmetry Value: %d\n", check[SYMMETRY_VALUE_ROW][i]);
 			//printf("PRC Value: %d\n", check[PRC_VALUE_ROW][i]);
-
-			printf("\n");
 		}
 		else if(check[FLAG_ROW][i] == 2){
 			total_okay++;

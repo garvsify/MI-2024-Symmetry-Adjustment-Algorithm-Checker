@@ -186,8 +186,10 @@ volatile extern uint8_t flags[34];
 volatile extern uint8_t flags_per_index[34][512];
 volatile extern uint16_t MPL;
 volatile extern uint16_t MPS;
-volatile uint16_t check[4][5*128*256];
-volatile uint32_t total_okay;
+volatile extern uint32_t count;
+volatile extern uint16_t check[4][5*128*256];
+volatile extern uint32_t total_okay;
+volatile extern uint8_t first_time;
 
 //STRUCT VARIABLES
 extern struct Params params; //'normal' running variables of the oscillator/s

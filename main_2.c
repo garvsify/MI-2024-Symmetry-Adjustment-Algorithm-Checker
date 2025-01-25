@@ -93,7 +93,8 @@ int main() {
 				N_raw = raw_prescaler_value * (256 - params.raw_start_value);
 				N_raw <<= 1; //multiply by two
 
-				N_sym_first_halfcycle = (N_sym_first_halfcycle_first_measurement + N_sym_first_halfcycle_second_measurement) >> 1;
+				//SINCE RAW PRESCALER IS ALWAYS A POWER OF 2, THE BELOW EXPRESSIONS WILL ALWAYS WORK (DON'T NEED FLOATING POINT)
+				N_sym_first_halfcycle = (N_sym_first_halfcycle_first_measurement + N_sym_first_halfcycle_second_measurement) >> 1; 
 				N_sym_second_halfcycle = (N_sym_second_halfcycle_first_measurement + N_sym_second_halfcycle_second_measurement) >> 1;
 
 				N_sym = N_sym_first_halfcycle + N_sym_second_halfcycle;
