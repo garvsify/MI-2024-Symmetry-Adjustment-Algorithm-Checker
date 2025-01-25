@@ -15,17 +15,26 @@ volatile uint16_t symmetry_value = 0;
 volatile uint32_t N_raw = 0;
 volatile uint32_t N_sym_first_halfcycle = 0;
 volatile uint32_t N_sym_second_halfcycle = 0;
+volatile uint32_t N_sym_first_halfcycle_first_measurement = 0;
+volatile uint32_t N_sym_first_halfcycle_second_measurement = 0;
+volatile uint32_t N_sym_second_halfcycle_first_measurement = 0;
+volatile uint32_t N_sym_second_halfcycle_second_measurement = 0;
 volatile uint32_t N_sym = 0;
+volatile uint8_t flags[34] = {0};
+volatile uint8_t flags_per_index[34][512] = {{0}};
+volatile uint16_t MPL = 0;
+volatile uint16_t MPS = 0;
 volatile uint16_t check[4][5*128*256] = {{0}};
 //volatile uint8_t check[1] = {0};
 volatile uint32_t count = 0;
+volatile uint32_t total_okay = 0;
 
 //STRUCT VARIABLES
 struct Params params = {0};
 
 int main() {
 
-	params.waveshape = SINE_MODE; //use sine wave for sake of it
+	params.waveshape = SQUARE_MODE; //use sine wave for sake of it
 
 
 
@@ -57,20 +66,33 @@ int main() {
                     Calculate_Next_Main_Oscillator_Values(&params);
                     Process_TIM16_Final_Start_Value_and_Final_Prescaler(&params);
 
-					if(params.index == FIRST_QUADRANT_START_INDEX){ //first halfcycle
+					if(params.index == FIRST_QUADRANT_START_INDEX){ //first halfcycle first index
 						
-						N_sym_first_halfcycle = params.final_prescaler * (256 - params.final_start_value);
+						N_sym_first_halfcycle_first_measurement = params.final_prescaler * (256 - params.final_start_value);
 						//printf("N_sym_first_halfcycle: %d\n", N_sym_first_halfcycle);
 					}
-					else if(params.index == THIRD_QUADRANT_START_INDEX){ //second halfcycle
+					else if(params.index == FIRST_QUADRANT_START_INDEX + 1){ //first halfcycle second index
+
+						N_sym_first_halfcycle_second_measurement = params.final_prescaler * (256 - params.final_start_value);
+					}
+					else if(params.index == THIRD_QUADRANT_START_INDEX){ //second halfcycle first index
 						
-						N_sym_second_halfcycle = params.final_prescaler * (256 - params.final_start_value);
+						N_sym_second_halfcycle_first_measurement = params.final_prescaler * (256 - params.final_start_value);
+						//printf("N_sym_second_halfcycle: %d\n", N_sym_second_halfcycle);
+					}
+					else if(params.index == THIRD_QUADRANT_START_INDEX + 1){ //second halfcycle second index
+						
+						N_sym_second_halfcycle_second_measurement = params.final_prescaler * (256 - params.final_start_value);
 						//printf("N_sym_second_halfcycle: %d\n", N_sym_second_halfcycle);
 					}
                 }
 
-				N_raw = raw_prescaler_value * (256 - params.raw_start_value);
+				N_raw = params.raw_prescaler * (256 - params.raw_start_value);
 				N_raw <<= 1; //multiply by two
+
+				N_sym_first_halfcycle = (N_sym_first_halfcycle_first_measurement + N_sym_first_halfcycle_second_measurement) >> 1;
+				N_sym_second_halfcycle = (N_sym_second_halfcycle_first_measurement + N_sym_second_halfcycle_second_measurement) >> 1;
+
 				N_sym = N_sym_first_halfcycle + N_sym_second_halfcycle;
 
 				//printf("N_sym: %d\n", N_sym);
@@ -79,9 +101,12 @@ int main() {
 				if(N_raw != N_sym){
 
 					check[FLAG_ROW][count] = 1;
-					check[RAW_PRESCALER_ROW][count] = raw_prescaler_value;
-					check[RAW_START_VALUE_ROW][count] = raw_start_value_value;
-					check[SYMMETRY_VALUE_ROW][count] = symmetry_value;
+					//check[RAW_PRESCALER_ROW][count] = (uint16_t)params.raw_prescaler;
+					//check[RAW_START_VALUE_ROW][count] = (uint16_t)params.raw_start_value;
+					//check[SYMMETRY_VALUE_ROW][count] = (uint16_t)params.symmetry;
+				}
+				else{
+					check[FLAG_ROW][count] = 2;
 				}
 
 				count++;
@@ -90,7 +115,7 @@ int main() {
     }
 
 	for(uint32_t i = 0; i < 5*128*256; i++){
-		if(check[0][FLAG_ROW] == 1){
+		if(check[FLAG_ROW][i] == 1){
 			printf("Struct: %d\n", i);
 			printf("Raw Prescaler Value: %d\n", check[RAW_PRESCALER_ROW][i]);
 			printf("Raw Start Value: %d\n", check[RAW_START_VALUE_ROW][i]);
@@ -99,6 +124,13 @@ int main() {
 
 			printf("\n");
 		}
+		else if(check[FLAG_ROW][i] == 2){
+			total_okay++;
+		}
+	}
+
+	if(total_okay == 5*128*256){
+		printf("Every combination is perfect!\n");
 	}
 
     return 0;
@@ -212,7 +244,9 @@ uint8_t Process_TIM16_Final_Start_Value_and_Final_Prescaler(struct Params* param
 		//HAVE TO BE uin16_t FOR 1ST AND 3RD VARIABLES HERE BECAUSE A uint8_t IS LIMITED TO 255!
 		uint16_t two_fifty_six_minus_TIM16_raw_start_value = 256 - params_ptr->raw_start_value;
 
-		uint16_t two_fifty_six_minus_TIM16_raw_start_value_multiplied_by_PRC = two_fifty_six_minus_TIM16_raw_start_value * pot_rotation_corrected;
+		//uint16_t two_fifty_six_minus_TIM16_raw_start_value_multiplied_by_PRC = (two_fifty_six_minus_TIM16_raw_start_value * pot_rotation_corrected);
+		//COMMENT LINE BELOW IN AND LINE ABOVE OUT TO EXPERIMENT WITH MORE EXTREME SYMMETRY ADJUSTMENT
+		uint16_t two_fifty_six_minus_TIM16_raw_start_value_multiplied_by_PRC = (two_fifty_six_minus_TIM16_raw_start_value * pot_rotation_corrected) << 1;
 
 		uint16_t two_fifty_six_minus_TIM16_raw_start_value_multiplied_by_PRC_and_shifted_by_ADC_bits = (uint16_t)(two_fifty_six_minus_TIM16_raw_start_value_multiplied_by_PRC >> SYMMETRY_ADC_NUM_BITS);
 
